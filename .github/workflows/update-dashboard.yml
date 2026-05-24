@@ -1,0 +1,54 @@
+name: Actualización semanal dashboard OTEC
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # Lunes 10:00 Chile (UTC-3 = UTC+13:00 inverso → 13:00 UTC)
+  workflow_dispatch:         # Permite ejecución manual desde GitHub
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Actualizar timestamp del dashboard
+        run: |
+          FECHA=$(TZ="America/Santiago" date "+%d/%m/%Y %H:%M")
+          sed -i "s|<!-- LAST_UPDATE -->.*<!-- /LAST_UPDATE -->|<!-- LAST_UPDATE -->Actualizado ${FECHA} hrs<!-- /LAST_UPDATE -->|g" index.html
+          echo "Dashboard actualizado: $FECHA"
+
+      - name: Commit y push si hay cambios
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "Sin cambios que commitear"
+          else
+            git commit -m "chore: actualización automática $(TZ='America/Santiago' date '+%d/%m/%Y')"
+            git push
+          fi
+
+      - name: Preparar carpeta para GitHub Pages
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+
+      - name: Subir artefacto a GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

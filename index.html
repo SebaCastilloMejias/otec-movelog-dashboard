@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Mercado Cursos — OTEC Movelog</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --primary: #534AB7;
+    --primary-light: #EEEDFE;
+    --primary-dark: #3C3489;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --coral: #993C1D;
+    --coral-light: #FAECE7;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+    --gray: #5F5E5A;
+    --gray-light: #F1EFE8;
+    --text: #1a1a18;
+    --text-sec: #5F5E5A;
+    --border: rgba(0,0,0,0.1);
+    --bg: #f8f7f4;
+    --card-bg: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    position: fixed; inset: 0; background: linear-gradient(135deg, #1a1740 0%, #534AB7 60%, #0F6E56 100%);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .login-box {
+    background: white; border-radius: 20px; padding: 2.5rem 2rem; width: 360px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3); text-align: center;
+  }
+  .login-logo {
+    width: 64px; height: 64px; border-radius: 16px; background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;
+    font-size: 28px;
+  }
+  .login-box h1 { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .login-box p { font-size: 13px; color: var(--text-sec); margin-bottom: 1.75rem; }
+  .login-box input {
+    width: 100%; padding: 12px 16px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; outline: none;
+    transition: border-color 0.2s; margin-bottom: 12px; color: var(--text);
+    background: var(--bg);
+  }
+  .login-box input:focus { border-color: var(--primary); }
+  .login-btn {
+    width: 100%; padding: 12px; background: var(--primary); color: white;
+    border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 500;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .login-btn:hover { background: var(--primary-dark); }
+  .login-error { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+  .login-footer { font-size: 11px; color: var(--text-sec); margin-top: 1.5rem; }
+
+  /* APP */
+  #app { display: none; }
+
+  /* TOPBAR */
+  .topbar {
+    background: white; border-bottom: 0.5px solid var(--border);
+    padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between;
+    height: 56px; position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .brand-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .brand-sub { font-size: 11px; color: var(--text-sec); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .update-badge { font-size: 11px; background: var(--green-light); color: var(--green); padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+  .logout-btn { font-size: 12px; color: var(--text-sec); background: none; border: 0.5px solid var(--border); padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+  .logout-btn:hover { background: var(--gray-light); }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  /* METRICS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: white; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text-sec); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .metric-sub { font-size: 10px; color: var(--text-sec); margin-top: 2px; }
+
+  /* TABS */
+  .tabs-bar { display: flex; gap: 2px; background: white; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 4px; margin-bottom: 1.25rem; overflow-x: auto; }
+  .tab-btn { padding: 8px 14px; font-size: 13px; border-radius: 8px; border: none; background: none; cursor: pointer; color: var(--text-sec); white-space: nowrap; transition: all 0.15s; font-weight: 400; }
+  .tab-btn.active { background: var(--primary); color: white; font-weight: 500; }
+  .tab-btn:not(.active):hover { background: var(--gray-light); color: var(--text); }
+
+  /* SECTIONS */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card { background: white; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+  .card-icon { font-size: 16px; }
+
+  /* RANKING */
+  .ranking-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .ranking-item:last-child { border-bottom: none; }
+  .rank-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .rank-1 { background: #FAEEDA; color: #854F0B; }
+  .rank-2 { background: #D3D1C7; color: #444441; }
+  .rank-3 { background: #FAECE7; color: #993C1D; }
+  .rank-n { background: #F1EFE8; color: #5F5E5A; }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-title { font-size: 13px; font-weight: 500; color: var(--text); }
+  .rank-meta { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+  .rank-prices { text-align: right; flex-shrink: 0; }
+  .rank-market { font-size: 11px; color: var(--text-sec); }
+  .rank-mine { font-size: 13px; font-weight: 600; color: var(--green); }
+
+  /* TAGS */
+  .tag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin: 2px 2px 0 0; font-weight: 500; }
+  .tag-blue { background: #E6F1FB; color: #185FA5; }
+  .tag-purple { background: #EEEDFE; color: #3C3489; }
+  .tag-green { background: #EAF3DE; color: #3B6D11; }
+  .tag-amber { background: #FAEEDA; color: #854F0B; }
+  .tag-coral { background: #FAECE7; color: #993C1D; }
+  .tag-teal { background: #E1F5EE; color: #0F6E56; }
+  .tag-gray { background: #F1EFE8; color: #5F5E5A; }
+
+  /* BARS */
+  .bar-wrap { margin: 8px 0; }
+  .bar-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); margin-bottom: 4px; }
+  .bar-track { height: 8px; background: var(--gray-light); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+
+  /* SENCE TABLE */
+  .sence-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sence-table th { text-align: left; color: var(--text-sec); font-weight: 500; font-size: 11px; padding: 6px 8px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .sence-table td { padding: 10px 8px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .sence-table tr:last-child td { border-bottom: none; }
+  .sence-table tr:hover td { background: var(--bg); }
+  .curso-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .curso-sub { font-size: 10px; color: var(--text-sec); }
+  .price-cost { font-size: 12px; font-weight: 500; color: var(--text); }
+  .price-detail { font-size: 10px; color: var(--text-sec); }
+  .price-mine { font-size: 13px; font-weight: 700; color: var(--green); }
+
+  /* PLATFORM GRID */
+  .platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+  .platform-card { background: white; border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .platform-emoji { font-size: 24px; margin-bottom: 8px; }
+  .platform-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .platform-desc { font-size: 12px; color: var(--text-sec); line-height: 1.5; margin-bottom: 8px; }
+
+  /* STRATEGY */
+  .strategy-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .strategy-item:last-child { border-bottom: none; }
+  .strategy-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .strategy-content { flex: 1; }
+  .strategy-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .strategy-desc { font-size: 12px; color: var(--text-sec); line-height: 1.5; }
+
+  /* PUBLISH TABLE */
+  .pub-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .pub-table th { text-align: left; color: var(--text-sec); font-weight: 500; font-size: 11px; padding: 6px 10px; border-bottom: 0.5px solid var(--border); background: var(--bg); }
+  .pub-table td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .pub-table tr:last-child td { border-bottom: none; }
+
+  /* RECOM */
+  .recom-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+  .recom-item:last-child { border-bottom: none; }
+  .recom-num { width: 24px; height: 24px; border-radius: 50%; background: var(--primary-light); color: var(--primary-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .recom-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .recom-desc { font-size: 12px; color: var(--text-sec); line-height: 1.5; }
+
+  /* INFO BOX */
+  .info-box { background: var(--green-light); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 12px; color: #2a5008; line-height: 1.6; margin-top: 1rem; }
+  .info-box strong { font-weight: 600; color: var(--green); }
+
+  /* CHARTS */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* GRID 2 */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  /* FOOTER */
+  .page-footer { text-align: center; font-size: 11px; color: var(--text-sec); padding: 1.5rem 0 0; border-top: 0.5px solid var(--border); margin-top: 2rem; }
+
+  /* UPDATED */
+  .updated-bar { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-sec); padding: 8px 0 1rem; }
+
+  @media (max-width: 600px) {
+    .platform-grid { grid-template-columns: 1fr; }
+    .grid2 { grid-template-columns: 1fr; }
+    .sence-table { font-size: 11px; }
+    .topbar { padding: 0 1rem; }
+    .container { padding: 1rem 0.75rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📊</div>
+    <h1>OTEC Movelog</h1>
+    <p>Dashboard de inteligencia de mercado<br>Ingresa tu contraseña para continuar</p>
+    <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkLogin()" />
+    <button class="login-btn" onclick="checkLogin()">Ingresar</button>
+    <div class="login-error" id="login-error">Contraseña incorrecta. Inténtalo de nuevo.</div>
+    <div class="login-footer">© 2026 OTEC Movelog · Acceso restringido</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon">📊</div>
+      <div>
+        <div class="brand-name">OTEC Movelog</div>
+        <div class="brand-sub">Inteligencia de mercado · Chile</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="update-badge">⟳ <!-- LAST_UPDATE -->Sin actualizar<!-- /LAST_UPDATE --></span>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <div class="updated-bar">
+      <span id="fecha-texto"></span>
+      <span>Próxima actualización: lunes 10:00 hrs</span>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Valor hora SENCE e-learning</div>
+        <div class="metric-value">$6.600</div>
+        <div class="metric-sub">Sinc. · máx. imput. 2025</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Valor hora presencial</div>
+        <div class="metric-value">$12.000</div>
+        <div class="metric-sub">Tramo máximo vigente</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Margen objetivo</div>
+        <div class="metric-value">≥45%</div>
+        <div class="metric-sub">Sobre precio de venta</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Capacitaciones SENCE/año</div>
+        <div class="metric-value">350K+</div>
+        <div class="metric-sub">Financiadas en Chile 2025</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Utilidad neta estimada</div>
+        <div class="metric-value">$1.35M</div>
+        <div class="metric-sub">Mes 1 con mix B2B+B2C</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="showTab('auto',this)">💻 Autoaprendizaje</button>
+      <button class="tab-btn" onclick="showTab('sence',this)">🏢 SENCE / Empresas</button>
+      <button class="tab-btn" onclick="showTab('redes',this)">📱 Redes sociales</button>
+      <button class="tab-btn" onclick="showTab('marca',this)">🚀 Posicionamiento</button>
+      <button class="tab-btn" onclick="showTab('recom',this)">💡 Recomendaciones</button>
+    </div>
+
+    <!-- ===== TAB: AUTOAPRENDIZAJE ===== -->
+    <div id="tab-auto" class="section active">
+
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🏆</span> Ranking cursos autoaprendizaje más vendidos — Chile 2026</div>
+        <div class="ranking-item">
+          <div class="rank-num rank-1">1</div>
+          <div class="rank-info">
+            <div class="rank-title">Inteligencia artificial & ChatGPT aplicado</div>
+            <div class="rank-meta">
+              <span class="tag tag-blue">Udemy</span><span class="tag tag-purple">Platzi</span>
+              <span class="tag tag-gray">Tecnología</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $15.000–$45.000</div>
+            <div class="rank-mine">Tu precio: $65.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-2">2</div>
+          <div class="rank-info">
+            <div class="rank-title">Excel básico, intermedio y avanzado</div>
+            <div class="rank-meta">
+              <span class="tag tag-blue">Udemy</span><span class="tag tag-teal">Lecciona</span>
+              <span class="tag tag-gray">Ofimática</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $9.000–$25.000</div>
+            <div class="rank-mine">Tu precio: $45.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-3">3</div>
+          <div class="rank-info">
+            <div class="rank-title">Python & programación para no técnicos</div>
+            <div class="rank-meta">
+              <span class="tag tag-blue">Udemy</span><span class="tag tag-purple">Coursera</span>
+              <span class="tag tag-gray">Tecnología</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $12.000–$35.000</div>
+            <div class="rank-mine">Tu precio: $60.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-n">4</div>
+          <div class="rank-info">
+            <div class="rank-title">Marketing digital & redes sociales</div>
+            <div class="rank-meta">
+              <span class="tag tag-coral">Hotmart</span><span class="tag tag-blue">LinkedIn Learning</span>
+              <span class="tag tag-gray">Marketing</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $18.000–$60.000</div>
+            <div class="rank-mine">Tu precio: $85.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-n">5</div>
+          <div class="rank-info">
+            <div class="rank-title">Finanzas personales & educación financiera</div>
+            <div class="rank-meta">
+              <span class="tag tag-coral">Hotmart</span><span class="tag tag-amber">Instagram creators</span>
+              <span class="tag tag-gray">Finanzas</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $20.000–$80.000</div>
+            <div class="rank-mine">Tu precio: $99.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-n">6</div>
+          <div class="rank-info">
+            <div class="rank-title">Diseño gráfico & Canva profesional</div>
+            <div class="rank-meta">
+              <span class="tag tag-blue">Udemy</span><span class="tag tag-coral">Hotmart</span>
+              <span class="tag tag-gray">Diseño</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $10.000–$40.000</div>
+            <div class="rank-mine">Tu precio: $55.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-n">7</div>
+          <div class="rank-info">
+            <div class="rank-title">Liderazgo & habilidades blandas</div>
+            <div class="rank-meta">
+              <span class="tag tag-purple">Coursera</span><span class="tag tag-blue">LinkedIn Learning</span>
+              <span class="tag tag-gray">Soft skills</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $15.000–$50.000</div>
+            <div class="rank-mine">Tu precio: $70.000</div>
+          </div>
+        </div>
+        <div class="ranking-item">
+          <div class="rank-num rank-n">8</div>
+          <div class="rank-info">
+            <div class="rank-title">E-commerce & ventas online</div>
+            <div class="rank-meta">
+              <span class="tag tag-coral">Hotmart</span><span class="tag tag-amber">TikTok Shop</span>
+              <span class="tag tag-gray">Ventas</span>
+            </div>
+          </div>
+          <div class="rank-prices">
+            <div class="rank-market">Mercado: $25.000–$90.000</div>
+            <div class="rank-mine">Tu precio: $120.000</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📊</span> Demanda por área temática — autoaprendizaje</div>
+        <div class="chart-wrap" style="height:260px;">
+          <canvas id="chart-auto" role="img" aria-label="Gráfico de barras con demanda por área temática de cursos autoaprendizaje en Chile 2026">Datos de demanda por área temática.</canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== TAB: SENCE ===== -->
+    <div id="tab-sence" class="section">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🏢</span> Capacitaciones más compradas con franquicia SENCE — 2026</div>
+        <div style="overflow-x:auto;">
+          <table class="sence-table">
+            <thead>
+              <tr>
+                <th>Curso / Programa</th>
+                <th>Área</th>
+                <th>Costo SENCE ref.</th>
+                <th>Tu precio (+45%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="curso-name">Excel para gestión empresarial</div><div class="curso-sub">8 hrs · e-learning sinc.</div></td>
+                <td><span class="tag tag-blue">Ofimática</span></td>
+                <td><div class="price-cost">$52.800</div><div class="price-detail">$6.600 × 8 hrs</div></td>
+                <td><div class="price-mine">$76.560</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Liderazgo & gestión de equipos</div><div class="curso-sub">16 hrs · presencial</div></td>
+                <td><span class="tag tag-purple">Soft skills</span></td>
+                <td><div class="price-cost">$192.000</div><div class="price-detail">$12.000 × 16 hrs</div></td>
+                <td><div class="price-mine">$278.400</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Prevención de riesgos laborales</div><div class="curso-sub">8 hrs · presencial</div></td>
+                <td><span class="tag tag-coral">Seguridad</span></td>
+                <td><div class="price-cost">$96.000</div><div class="price-detail">$12.000 × 8 hrs</div></td>
+                <td><div class="price-mine">$139.200</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Comunicación efectiva en el trabajo</div><div class="curso-sub">8 hrs · e-learning sinc.</div></td>
+                <td><span class="tag tag-purple">Soft skills</span></td>
+                <td><div class="price-cost">$52.800</div><div class="price-detail">$6.600 × 8 hrs</div></td>
+                <td><div class="price-mine">$76.560</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Marketing digital para PYME</div><div class="curso-sub">16 hrs · e-learning asinc.</div></td>
+                <td><span class="tag tag-teal">Marketing</span></td>
+                <td><div class="price-cost">$36.800</div><div class="price-detail">$2.300 × 16 hrs</div></td>
+                <td><div class="price-mine">$53.360</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Transformación digital e IA en la empresa</div><div class="curso-sub">24 hrs · e-learning sinc.</div></td>
+                <td><span class="tag tag-blue">Tecnología</span></td>
+                <td><div class="price-cost">$158.400</div><div class="price-detail">$6.600 × 24 hrs</div></td>
+                <td><div class="price-mine">$229.680</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Atención al cliente & experiencia CX</div><div class="curso-sub">8 hrs · presencial</div></td>
+                <td><span class="tag tag-amber">Ventas</span></td>
+                <td><div class="price-cost">$96.000</div><div class="price-detail">$12.000 × 8 hrs</div></td>
+                <td><div class="price-mine">$139.200</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Ciberseguridad básica para empresas</div><div class="curso-sub">8 hrs · e-learning sinc.</div></td>
+                <td><span class="tag tag-blue">Tecnología</span></td>
+                <td><div class="price-cost">$52.800</div><div class="price-detail">$6.600 × 8 hrs</div></td>
+                <td><div class="price-mine">$76.560</div></td>
+              </tr>
+              <tr>
+                <td><div class="curso-name">Normas ISO 9001 & calidad empresarial</div><div class="curso-sub">24 hrs · presencial</div></td>
+                <td><span class="tag tag-green">Calidad</span></td>
+                <td><div class="price-cost">$288.000</div><div class="price-detail">$12.000 × 24 hrs</div></td>
+                <td><div class="price-mine">$417.600</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="info-box">
+          <strong>Fórmula de margen ≥45%:</strong> Costo SENCE ÷ 0.55 = precio mínimo de venta.
+          Con comité bipartito (CBC) el valor hora sube 20% adicional — úsalo para cursos ancla de alto volumen.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📊</span> Demanda por área — capacitación empresarial SENCE</div>
+        <div class="chart-wrap" style="height:240px;">
+          <canvas id="chart-sence" role="img" aria-label="Gráfico de barras con demanda de capacitaciones SENCE por área">Demanda capacitaciones SENCE por área.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: REDES SOCIALES ===== -->
+    <div id="tab-redes" class="section">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📱</span> Qué se vende en cada red social — Chile 2026</div>
+        <div class="platform-grid">
+          <div class="platform-card">
+            <div class="platform-emoji">📸</div>
+            <div class="platform-name">Instagram</div>
+            <div class="platform-desc">Canal #1 para infoproductos de nicho. Stories, reels y lives generan alta conversión. Audiencia 25–44 años.</div>
+            <div>
+              <span class="tag tag-amber">Finanzas personales</span>
+              <span class="tag tag-amber">Bienestar & mindset</span>
+              <span class="tag tag-amber">Emprendimiento</span>
+              <span class="tag tag-amber">Coaching</span>
+              <span class="tag tag-amber">Nutrición</span>
+            </div>
+          </div>
+          <div class="platform-card">
+            <div class="platform-emoji">🎵</div>
+            <div class="platform-name">TikTok</div>
+            <div class="platform-desc">Explosivo para captar leads 18–35 años. Algoritmo orgánico muy potente. Redirige tráfico a Hotmart.</div>
+            <div>
+              <span class="tag tag-teal">Marketing digital</span>
+              <span class="tag tag-teal">E-commerce</span>
+              <span class="tag tag-teal">IA práctica</span>
+              <span class="tag tag-teal">Trading</span>
+              <span class="tag tag-teal">Productividad</span>
+            </div>
+          </div>
+          <div class="platform-card">
+            <div class="platform-emoji">💼</div>
+            <div class="platform-name">LinkedIn</div>
+            <div class="platform-desc">Canal B2B por excelencia. Perfecto para captar empresas y RRHH para cursos SENCE. Posicionamiento de autoridad.</div>
+            <div>
+              <span class="tag tag-blue">Liderazgo</span>
+              <span class="tag tag-blue">Transformación digital</span>
+              <span class="tag tag-blue">Habilidades blandas</span>
+              <span class="tag tag-blue">ISO / calidad</span>
+            </div>
+          </div>
+          <div class="platform-card">
+            <div class="platform-emoji">👥</div>
+            <div class="platform-name">Facebook Groups</div>
+            <div class="platform-desc">Comunidades de emprendedores y PYME. Bueno para webinars y funnels de venta. Audiencia 35–55 años.</div>
+            <div>
+              <span class="tag tag-purple">Excel</span>
+              <span class="tag tag-purple">Ventas</span>
+              <span class="tag tag-purple">Emprendimiento</span>
+              <span class="tag tag-purple">Oficios técnicos</span>
+            </div>
+          </div>
+          <div class="platform-card">
+            <div class="platform-emoji">📦</div>
+            <div class="platform-name">Hotmart</div>
+            <div class="platform-desc">Plataforma #1 de infoproductos en LATAM. Marketplace con red de afiliados. Ingresos pasivos escalables.</div>
+            <div>
+              <span class="tag tag-green">Todos los nichos</span>
+              <span class="tag tag-green">Afiliados</span>
+              <span class="tag tag-green">Pago internacional</span>
+            </div>
+          </div>
+          <div class="platform-card">
+            <div class="platform-emoji">📺</div>
+            <div class="platform-name">YouTube</div>
+            <div class="platform-desc">Contenido gratuito para posicionar marca y captar leads hacia cursos pagados. SEO de largo plazo muy potente.</div>
+            <div>
+              <span class="tag tag-coral">Tutoriales Excel</span>
+              <span class="tag tag-coral">IA aplicada</span>
+              <span class="tag tag-coral">Capacitación laboral</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="card-icon">📊</span> Oportunidad de captación por plataforma</div>
+        <div class="bar-wrap"><div class="bar-row"><span>TikTok (alcance orgánico)</span><span>95%</span></div><div class="bar-track"><div class="bar-fill" style="width:95%;background:#0F6E56;"></div></div></div>
+        <div class="bar-wrap"><div class="bar-row"><span>Instagram (infoproductos B2C)</span><span>88%</span></div><div class="bar-track"><div class="bar-fill" style="width:88%;background:#D85A30;"></div></div></div>
+        <div class="bar-wrap"><div class="bar-row"><span>LinkedIn (B2B / SENCE)</span><span>82%</span></div><div class="bar-track"><div class="bar-fill" style="width:82%;background:#185FA5;"></div></div></div>
+        <div class="bar-wrap"><div class="bar-row"><span>Hotmart (marketplace)</span><span>80%</span></div><div class="bar-track"><div class="bar-fill" style="width:80%;background:#BA7517;"></div></div></div>
+        <div class="bar-wrap"><div class="bar-row"><span>Facebook Groups (PYME)</span><span>65%</span></div><div class="bar-track"><div class="bar-fill" style="width:65%;background:#534AB7;"></div></div></div>
+        <div class="bar-wrap"><div class="bar-row"><span>YouTube (SEO largo plazo)</span><span>60%</span></div><div class="bar-track"><div class="bar-fill" style="width:60%;background:#639922;"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: POSICIONAMIENTO ===== -->
+    <div id="tab-marca" class="section">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🚀</span> Estrategias de posicionamiento de marca para tu OTEC</div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#EEEDFE;">🎯</div>
+          <div class="strategy-content">
+            <div class="strategy-title">1. Define tu posicionamiento experto (authority branding)</div>
+            <div class="strategy-desc">Elige 2–3 nichos ancla (ej: IA + Excel + Liderazgo para empresas). Posiciona el perfil de LinkedIn del fundador como referente. Publica artículos y casos de éxito semanales.</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#E6F1FB;">🎬</div>
+          <div class="strategy-content">
+            <div class="strategy-title">2. Contenido educativo gratuito en TikTok e Instagram Reels</div>
+            <div class="strategy-desc">Publica 3 reels/semana con tips rápidos de Excel, IA o productividad. El contenido gratuito genera confianza y redirige hacia tus cursos pagados o formulario de cotización SENCE.</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#EAF3DE;">📧</div>
+          <div class="strategy-content">
+            <div class="strategy-title">3. Email marketing + webinar mensual gratuito</div>
+            <div class="strategy-desc">Ofrece una masterclass online gratis de 45 min cada mes. Captura emails con un lead magnet (ej: "Guía SENCE para empresas"). Nutre la lista y convierte a clientes B2B.</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#FAEEDA;">🔍</div>
+          <div class="strategy-content">
+            <div class="strategy-title">4. SEO local + Google My Business</div>
+            <div class="strategy-desc">Posiciona tu OTEC en búsquedas como "capacitación SENCE [ciudad] 2026" o "cursos Excel para empresas Chile". Google My Business genera leads orgánicos gratuitos de forma continua.</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#FAECE7;">🤝</div>
+          <div class="strategy-content">
+            <div class="strategy-title">5. Alianzas con gremios, cámaras de comercio y asociaciones</div>
+            <div class="strategy-desc">Las cámaras de comercio regionales y la CPC son puerta de entrada directa a PYME con franquicia SENCE activa. Ofrece charlas gratuitas para posicionarte como proveedor confiable.</div>
+          </div>
+        </div>
+        <div class="strategy-item">
+          <div class="strategy-icon" style="background:#E1F5EE;">⭐</div>
+          <div class="strategy-content">
+            <div class="strategy-title">6. Testimonios y casos de éxito como motor de confianza</div>
+            <div class="strategy-desc">Cada capacitación completada es un caso de éxito. Recopila testimonios en video y publica en LinkedIn e Instagram. El boca a boca digital acelera la conversión B2B.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="card-icon">🗺️</span> Dónde publicar y qué publicar — resumen ejecutivo</div>
+        <div style="overflow-x:auto;">
+          <table class="pub-table">
+            <thead>
+              <tr>
+                <th>Canal</th>
+                <th>Tipo de contenido</th>
+                <th>Objetivo</th>
+                <th>Frecuencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>TikTok</strong></td><td>Tips 60 seg, behind-the-scenes cursos</td><td>Captar leads B2C jóvenes</td><td>Diario</td></tr>
+              <tr><td><strong>Instagram</strong></td><td>Reels educativos, carruseles, stories con CTA</td><td>Comunidad + ventas B2C</td><td>3x/semana</td></tr>
+              <tr><td><strong>LinkedIn</strong></td><td>Artículos, casos de éxito, noticias SENCE</td><td>Captar empresas B2B</td><td>2x/semana</td></tr>
+              <tr><td><strong>YouTube</strong></td><td>Tutoriales gratuitos 5–15 min</td><td>SEO & autoridad de marca</td><td>1x/semana</td></tr>
+              <tr><td><strong>Hotmart</strong></td><td>Catálogo de cursos propios</td><td>Ventas pasivas 24/7</td><td>Siempre activo</td></tr>
+              <tr><td><strong>WhatsApp Business</strong></td><td>Seguimiento postventa, ofertas exclusivas</td><td>Fidelización & upsell</td><td>Según leads</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: RECOMENDACIONES ===== -->
+    <div id="tab-recom" class="section">
+      <div class="card">
+        <div class="card-title"><span class="card-icon">💡</span> Servicios adicionales para escalar tu OTEC</div>
+        <div class="recom-item">
+          <div class="recom-num">1</div>
+          <div>
+            <div class="recom-title">Diagnóstico organizacional de necesidades de capacitación (DNC)</div>
+            <div class="recom-desc">Ofrece a empresas un diagnóstico previo (pago) de sus brechas de competencias. Te posiciona como consultor estratégico antes de vender los cursos. Precio sugerido: $250.000–$500.000 por empresa.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">2</div>
+          <div>
+            <div class="recom-title">Coaching ejecutivo & mentoría para líderes</div>
+            <div class="recom-desc">Alta demanda en empresas medianas. Ticket promedio de $80.000–$150.000/sesión mensual por ejecutivo. Se puede combinar con SENCE bajo ciertos formatos. Diferenciador clave frente a otros OTEC.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">3</div>
+          <div>
+            <div class="recom-title">Gestión completa de franquicia SENCE llave en mano</div>
+            <div class="recom-desc">Muchas PYME no saben usar la franquicia. Ofrece diagnóstico, cursos, papelería SENCE y seguimiento completo. Cobra un fee de gestión del 15–20% adicional al valor del curso.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">4</div>
+          <div>
+            <div class="recom-title">Membresía de capacitación continua para equipos</div>
+            <div class="recom-desc">Modelo de suscripción mensual/anual: acceso ilimitado al catálogo e-learning para el equipo completo. Ingresos recurrentes predecibles. Precio: $150.000–$400.000/mes según tamaño de empresa.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">5</div>
+          <div>
+            <div class="recom-title">Cursos propios en Hotmart (infoproductos)</div>
+            <div class="recom-desc">Crea 2–3 cursos propios en temas ancla (Excel, IA, Liderazgo) y véndelos en Hotmart con red de afiliados. Ingresos pasivos que escalan sin límite de aforo. Inversión inicial baja, ROI alto.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">6</div>
+          <div>
+            <div class="recom-title">Consultoría en transformación digital para industrias</div>
+            <div class="recom-desc">Minería, retail, logística y salud están invirtiendo fuerte en digitalización. Ofrece paquetes de consultoría + capacitación adaptados a cada sector. Ticket promedio: $2M–$8M/proyecto anual.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">7</div>
+          <div>
+            <div class="recom-title">Certificaciones internacionales como valor agregado</div>
+            <div class="recom-desc">Integra certificaciones de Google, HubSpot, Microsoft o PMI en tus programas. Aumenta el valor percibido y el precio de venta sin incrementar mucho el costo. Muy atractivo para candidatos laborales.</div>
+          </div>
+        </div>
+        <div class="recom-item">
+          <div class="recom-num">8</div>
+          <div>
+            <div class="recom-title">Programa de outplacement para empresas en reestructuración</div>
+            <div class="recom-desc">Apoyo a trabajadores desvinculados con recapacitación y reorientación laboral. Las empresas pagan este beneficio social. Segmento poco explotado con buenos márgenes.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box" style="margin-bottom:1rem;">
+        <strong>Proyección de ingresos mensuales estimados:</strong><br>
+        5 empresas SENCE × $200.000 promedio = $1.000.000 &nbsp;|&nbsp;
+        20 cursos autoaprendizaje × $60.000 = $1.200.000 &nbsp;|&nbsp;
+        2 consultorías DNC × $400.000 = $800.000<br>
+        <strong>Total estimado mes 1: ~$3.000.000 &nbsp;·&nbsp; Utilidad neta al 45%: ~$1.350.000</strong>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      © 2026 OTEC Movelog · Dashboard de inteligencia de mercado · Chile<br>
+      Actualizado automáticamente cada lunes a las 10:00 hrs vía GitHub Actions
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const PASSWORD = 'sebastian180419';
+
+  function checkLogin() {
+    const val = document.getElementById('pwd-input').value;
+    if (val === PASSWORD) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      sessionStorage.setItem('auth', '1');
+      initCharts();
+      setDate();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').focus();
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem('auth');
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('pwd-input').value = '';
+  }
+
+  function setDate() {
+    const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('fecha-texto').textContent =
+      'Análisis al ' + new Date().toLocaleDateString('es-CL', opts);
+  }
+
+  function showTab(id, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function initCharts() {
+    const defaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+
+    new Chart(document.getElementById('chart-auto'), {
+      type: 'bar',
+      data: {
+        labels: ['IA & ChatGPT', 'Excel', 'Python', 'Mkt Digital', 'Finanzas', 'Diseño', 'Liderazgo', 'E-commerce'],
+        datasets: [{
+          data: [92, 88, 80, 76, 73, 62, 57, 51],
+          backgroundColor: ['#534AB7','#185FA5','#0F6E56','#D85A30','#BA7517','#993556','#1D9E75','#639922'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        ...defaults,
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('chart-sence'), {
+      type: 'bar',
+      data: {
+        labels: ['Ofimática', 'Liderazgo', 'Seguridad', 'Tecnología', 'Soft skills', 'Marketing', 'Ventas', 'Calidad'],
+        datasets: [{
+          data: [85, 80, 78, 74, 70, 62, 58, 50],
+          backgroundColor: ['#185FA5','#534AB7','#D85A30','#0F6E56','#993556','#1D9E75','#BA7517','#639922'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        ...defaults,
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  if (sessionStorage.getItem('auth') === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    window.addEventListener('load', () => { initCharts(); setDate(); });
+  }
+</script>
+</body>
+</html>
